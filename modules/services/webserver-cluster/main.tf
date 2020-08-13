@@ -1,3 +1,14 @@
+locals {
+  http_port    = 80
+  https_port   = 443
+  ssh_port     = 22
+  all_ports    = 0
+  instance_ami = "ami-0c115dbd34c69a004"
+  any_protocol = "-1"
+  tcp_protocol = "tcp"
+  all_ips      = ["0.0.0.0/0"]
+}
+
 data "aws_vpc" "default" {
   default = true
 }
@@ -18,7 +29,7 @@ data "terraform_remote_state" "db" {
 data "template_file" "hello_world_index" {
   template = file("${path.module}/user-data.sh")
   vars = {
-    server_port = var.server_http_port
+    server_port = local.http_port
     db_address  = data.terraform_remote_state.db.outputs.webserver_db_address
     db_port     = data.terraform_remote_state.db.outputs.webserver_db_port
   }
@@ -27,36 +38,36 @@ data "template_file" "hello_world_index" {
 resource "aws_security_group" "all_ssh" {
   name = "${var.cluster_name}AllSSH"
   ingress {
-    from_port   = 22
-    protocol    = "tcp"
-    to_port     = 22
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.ssh_port
+    protocol    = local.tcp_protocol
+    to_port     = local.ssh_port
+    cidr_blocks = local.all_ips
   }
 }
 
 resource "aws_security_group" "simple_webserver_alb" {
   name = "${var.cluster_name}WebserverALB"
   ingress {
-    from_port   = 80
-    protocol    = "tcp"
-    to_port     = 80
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.http_port
+    protocol    = local.tcp_protocol
+    to_port     = local.http_port
+    cidr_blocks = local.all_ips
   }
   ingress {
-    from_port   = 443
-    protocol    = "tcp"
-    to_port     = 443
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.https_port
+    protocol    = local.tcp_protocol
+    to_port     = local.https_port
+    cidr_blocks = local.all_ips
   }
 }
 
 resource "aws_security_group" "all_egress" {
   name = "${var.cluster_name}AllEgress"
   egress {
-    from_port   = 0
-    protocol    = "-1"
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = local.all_ports
+    protocol    = local.any_protocol
+    to_port     = local.all_ports
+    cidr_blocks = local.all_ips
   }
 }
 
@@ -64,20 +75,20 @@ resource "aws_security_group" "webserver" {
   name = "${var.cluster_name}Webserver"
   ingress {
     security_groups = [aws_security_group.simple_webserver_alb.id]
-    from_port       = var.server_http_port
-    protocol        = "tcp"
-    to_port         = var.server_http_port
+    from_port       = local.http_port
+    protocol        = local.tcp_protocol
+    to_port         = local.http_port
   }
   egress {
-    from_port   = 0
-    protocol    = "-1"
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"] # for updates
+    from_port   = local.all_ports
+    protocol    = local.any_protocol
+    to_port     = local.all_ports
+    cidr_blocks = local.all_ips # for updates
   }
 }
 
 resource "aws_launch_template" "hello_world" {
-  image_id               = var.webserver_base_ami
+  image_id               = local.instance_ami
   instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.webserver.id, aws_security_group.all_ssh.id]
   user_data              = base64encode(data.template_file.hello_world_index.rendered)
@@ -85,7 +96,7 @@ resource "aws_launch_template" "hello_world" {
 
 resource "aws_alb_target_group" "hello_world" {
   name     = var.cluster_name
-  port     = var.server_http_port
+  port     = local.http_port
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.default.id
   health_check {
@@ -124,7 +135,7 @@ resource "aws_alb" "hello_world" {
 
 resource "aws_alb_listener" "hello_world_webserver_http" {
   load_balancer_arn = aws_alb.hello_world.arn
-  port              = 80
+  port              = local.http_port
   protocol          = "HTTP"
   default_action {
     type = "fixed-response"

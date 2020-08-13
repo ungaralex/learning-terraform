@@ -4,6 +4,6 @@ provider "aws" {
 
 module "webserver_cluster" {
   source       = "../../../modules/services/webserver-cluster"
-  cluster_name = "HelloWorldStage"
-  stage        = "stage"
+  cluster_name = "HelloWorldProd"
+  stage        = "prod"
 }

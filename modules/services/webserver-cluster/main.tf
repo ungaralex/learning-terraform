@@ -1,9 +1,3 @@
-terraform {
-  backend "s3" {
-    key = "${var.stage}/services/webserver-cluster/terraform.tfstate"
-  }
-}
-
 data "aws_vpc" "default" {
   default = true
 }
@@ -22,7 +16,7 @@ data "terraform_remote_state" "db" {
 }
 
 data "template_file" "hello_world_index" {
-  template = file("user-data.sh")
+  template = file("${path.module}/user-data.sh")
   vars = {
     server_port = var.server_http_port
     db_address  = data.terraform_remote_state.db.outputs.webserver_db_address

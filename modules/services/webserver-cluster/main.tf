@@ -78,7 +78,7 @@ resource "aws_security_group" "webserver" {
 
 resource "aws_launch_template" "hello_world" {
   image_id               = var.webserver_base_ami
-  instance_type          = "t2.micro"
+  instance_type          = var.instance_type
   vpc_security_group_ids = [aws_security_group.webserver.id, aws_security_group.all_ssh.id]
   user_data              = base64encode(data.template_file.hello_world_index.rendered)
 }
@@ -100,8 +100,8 @@ resource "aws_alb_target_group" "hello_world" {
 }
 
 resource "aws_autoscaling_group" "hello_world" {
-  max_size            = 5
-  min_size            = 2
+  max_size            = var.max_size
+  min_size            = var.min_size
   vpc_zone_identifier = data.aws_subnet_ids.default.ids
   target_group_arns   = [aws_alb_target_group.hello_world.arn]
   health_check_type   = "ELB"

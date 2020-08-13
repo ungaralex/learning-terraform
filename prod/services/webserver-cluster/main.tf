@@ -13,7 +13,10 @@ provider "aws" {
 }
 
 module "webserver_cluster" {
-  source       = "../../../modules/services/webserver-cluster"
-  cluster_name = "HelloWorldProd"
-  stage        = "prod"
+  source        = "../../../modules/services/webserver-cluster"
+  cluster_name  = "HelloWorldProd"
+  stage         = "prod"
+  instance_type = "t2.micro"
+  min_size      = 3
+  max_size      = 5
 }

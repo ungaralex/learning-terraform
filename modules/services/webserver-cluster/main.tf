@@ -188,3 +188,31 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
   desired_capacity       = 2
   recurrence             = "0 17 * * *"
 }
+
+resource "aws_cloudwatch_metric_alarm" "high_cpu_utilization" {
+  alarm_name          = "${var.cluster_name}HighCPUUtilization"
+  namespace           = "AWS/EC2"
+  metric_name         = "CPUUtilization"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  statistic           = "Average"
+  threshold           = 90
+  unit                = "Percent"
+  dimensions = {
+    AutoscalingGroupName = aws_autoscaling_group.hello_world.name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
+  count               = format("%.1s", var.instance_type) == "t" ? 1 : 0
+  alarm_name          = "${var.cluster_name}LowCPUCreditBalance"
+  namespace           = "AWS/EC2"
+  metric_name         = "CPUCreditBalance"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  statistic           = "Minimum"
+  threshold           = 10
+  unit                = "Count"
+}

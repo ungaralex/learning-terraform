@@ -168,3 +168,23 @@ resource "aws_alb_listener_rule" "hello_world_forward" {
     target_group_arn = aws_alb_target_group.hello_world.arn
   }
 }
+
+resource "aws_autoscaling_schedule" "scale_out_during_busines_hours" {
+  count                  = var.use_day_night_scaling ? 1 : 0
+  autoscaling_group_name = aws_autoscaling_group.hello_world.name
+  scheduled_action_name  = "ScaleOutDuringBusinessHours"
+  min_size               = 2
+  max_size               = 10
+  desired_capacity       = 4
+  recurrence             = "0 9 * * *"
+}
+
+resource "aws_autoscaling_schedule" "scale_in_at_night" {
+  count                  = var.use_day_night_scaling ? 1 : 0
+  autoscaling_group_name = aws_autoscaling_group.hello_world.name
+  scheduled_action_name  = "ScaleInAtNight"
+  min_size               = 2
+  max_size               = 10
+  desired_capacity       = 2
+  recurrence             = "0 17 * * *"
+}

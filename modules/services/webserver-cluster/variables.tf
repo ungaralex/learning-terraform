@@ -26,4 +26,10 @@ variable "max_size" {
 variable "custom_instance_tags" {
   description = "Custom tags for the by the ASG generated instances"
   type        = map(string)
+  default     = {}
+}
+
+variable "use_day_night_scaling" {
+  description = "Whether the ASG should scale in/out during business hours"
+  type        = bool
 }
